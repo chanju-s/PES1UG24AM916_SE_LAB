@@ -3,6 +3,10 @@ import pygame
 from game.button import ChoiceButton
 
 WIN_SCORE = 5
+HISTORY_LEN = 5        # how many recent player throws to remember
+FAVOR_THRESHOLD = 3    # same move this many times in the history counts as "favoring" it
+COUNTER_PROB = 0.65    # chance the CPU plays the counter once a favorite is detected
+COUNTERS = {"ROCK": "PAPER", "PAPER": "SCISSORS", "SCISSORS": "ROCK"}
 
 class GameEngine:
     def __init__(self, width, height):
@@ -29,6 +33,7 @@ class GameEngine:
 
         self.player_score = 0
         self.cpu_score = 0
+        self.history = []
 
         self.round_resolved_time = 0
         self.display_duration = 1800
@@ -57,7 +62,9 @@ class GameEngine:
 
     def play_round(self, choice):
         self.player_choice = choice
-        self.cpu_choice = random.choice(self.choices)
+        self.cpu_choice = self.choose_cpu_move()
+        self.history.append(choice)
+        self.history = self.history[-HISTORY_LEN:]
 
         outcome = self.determine_winner(self.player_choice, self.cpu_choice)
         if outcome == "PLAYER":
@@ -102,6 +109,16 @@ class GameEngine:
             self.result_color = (190, 195, 205)
             self.showing_result = False
 
+    def choose_cpu_move(self):
+        if len(self.history) >= FAVOR_THRESHOLD:
+            favorite = max(self.choices, key=self.history.count)
+            if self.history.count(favorite) >= FAVOR_THRESHOLD:
+                counter = COUNTERS[favorite]
+                if random.random() < COUNTER_PROB:
+                    return counter
+                return random.choice([c for c in self.choices if c != counter])
+        return random.choice(self.choices)
+
     def reset(self):
         self.player_choice = None
         self.cpu_choice = None
@@ -112,6 +129,7 @@ class GameEngine:
         self.showing_result = False
         self.match_over = False
         self.winner_text = ""
+        self.history = []
 
     def render(self, screen):
         screen.fill((24, 28, 36))
