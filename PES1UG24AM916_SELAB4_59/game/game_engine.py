@@ -2,6 +2,8 @@ import random
 import pygame
 from game.button import ChoiceButton
 
+WIN_SCORE = 5
+
 class GameEngine:
     def __init__(self, width, height):
         self.width = width
@@ -31,6 +33,9 @@ class GameEngine:
         self.round_resolved_time = 0
         self.display_duration = 1800
         self.showing_result = False
+
+        self.match_over = False
+        self.winner_text = ""
 
         self.font_title = pygame.font.SysFont(None, 36)
         self.font_hud = pygame.font.SysFont(None, 26)
@@ -70,7 +75,16 @@ class GameEngine:
         self.showing_result = True
         self.round_resolved_time = pygame.time.get_ticks()
 
+        if self.player_score >= WIN_SCORE or self.cpu_score >= WIN_SCORE:
+            self.match_over = True
+            self.winner_text = "YOU WIN THE MATCH!" if self.player_score >= WIN_SCORE else "CPU WINS THE MATCH!"
+
     def handle_event(self, event):
+        if self.match_over:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                self.reset()
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.buttons:
                 if btn.contains(event.pos):
@@ -78,6 +92,8 @@ class GameEngine:
                     break
 
     def update(self):
+        if self.match_over:
+            return
         now = pygame.time.get_ticks()
         if self.showing_result and (now - self.round_resolved_time >= self.display_duration):
             self.player_choice = None
@@ -85,6 +101,17 @@ class GameEngine:
             self.result_text = "Make your move!"
             self.result_color = (190, 195, 205)
             self.showing_result = False
+
+    def reset(self):
+        self.player_choice = None
+        self.cpu_choice = None
+        self.player_score = 0
+        self.cpu_score = 0
+        self.result_text = "Make your move!"
+        self.result_color = (220, 225, 235)
+        self.showing_result = False
+        self.match_over = False
+        self.winner_text = ""
 
     def render(self, screen):
         screen.fill((24, 28, 36))
@@ -110,5 +137,12 @@ class GameEngine:
         res_surf = self.font_arena.render(self.result_text, True, self.result_color)
         screen.blit(res_surf, (self.width // 2 - res_surf.get_width() // 2, 205))
 
-        for btn in self.buttons:
-            btn.render(screen)
+        if self.match_over:
+            color = (80, 230, 120) if self.player_score >= WIN_SCORE else (240, 80, 80)
+            banner = self.font_title.render(self.winner_text, True, color)
+            hint = self.font_arena.render("Press R to restart", True, (225, 225, 230))
+            screen.blit(banner, (self.width // 2 - banner.get_width() // 2, self.height - 120))
+            screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 65))
+        else:
+            for btn in self.buttons:
+                btn.render(screen)
