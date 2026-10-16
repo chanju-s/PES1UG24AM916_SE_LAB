@@ -25,6 +25,7 @@ blocks:
   B: {gender: F, rooms: 2, capacity: 3, fee: 3500}
 """
 
+
 def load_config(text=CONFIG):
     """Parse the YAML config safely and build the rooms dictionary."""
     config = yaml.safe_load(text)
@@ -38,13 +39,15 @@ def load_config(text=CONFIG):
             }
     return config
 
+
 def _has_free_bed(room, gender):
     """Return True if the room matches the gender and has a free bed."""
     return (room["gender"] == gender
             and len(room["occupants"]) < room["capacity"])
 
+
 def allocate_room(student_id, name, gender, year, preferred=None):
-    """Allocate a bed; return the room number, or None if waitlisted/invalid."""
+    """Allocate a bed; return the room, or None if waitlisted/invalid."""
     if not isinstance(year, int) or isinstance(year, bool):
         return None
     if student_id in allocations:
@@ -62,11 +65,13 @@ def allocate_room(student_id, name, gender, year, preferred=None):
         waitlist.append(student_id)
     return None
 
+
 def vacate_room(student_id):
     """Remove a student from their room and from the allocation table."""
     allocation = allocations.pop(student_id, None)
     if allocation is not None:
         rooms[allocation["room"]]["occupants"].remove(student_id)
+
 
 def monthly_fee(student_id, days_stayed):
     """Fee for the stay, charging every started 30-day month."""
@@ -76,27 +81,33 @@ def monthly_fee(student_id, days_stayed):
     months = math.ceil(days_stayed / 30)
     return months * room["fee"]
 
+
 def priority_order(students):
     """Order students seniors first (highest year first)."""
     return sorted(students, key=lambda s: s["year"], reverse=True)
 
+
 def room_lottery(student_ids):
     """Return the student ids in a random order."""
     return secrets.SystemRandom().sample(student_ids, len(student_ids))
+
 
 def vacant_beds():
     """Count every unoccupied bed across all rooms."""
     return sum(room["capacity"] - len(room["occupants"])
                for room in rooms.values())
 
+
 def connect_warden_db():
     """Connect to the warden DB; the password comes from the environment."""
     password = os.environ.get("WARDEN_DB_PASSWORD", "")
     return db_connect(host="localhost", user="warden", password=password)
 
+
 def db_connect(host, user, password):
     """Stub database connection."""
     return {"host": host, "user": user, "connected": len(password) > 0}
+
 
 @app.route("/room")
 def room_lookup():
@@ -106,9 +117,11 @@ def room_lookup():
         abort(400)
     return f"<h1>Room for {escape(sid)}: {escape(allocations.get(sid))}</h1>"
 
+
 def run_portal():
     """Start the portal on localhost with the debugger disabled."""
     app.run(host="127.0.0.1")
+
 
 def main():
     """Run a demonstration of the allocation system."""
@@ -131,6 +144,7 @@ def main():
     print("Vacant beds:", vacant_beds())
     print("Warden DB:", connect_warden_db())
     print("Waitlist:", waitlist)
+
 
 if __name__ == "__main__":
     main()
